@@ -1,10 +1,9 @@
 # Build image
 FROM maven:3.8.5-amazoncorretto-17 as builder
 
-COPY src /usr/src/app/src
-COPY pom.xml /usr/src/app
+COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN mvn package
+RUN mvn package --batch-mode --no-transfer-progress --show-version
 RUN mv target/okta-pw-import-hook-*.jar target/app.jar
 
 # Run image
