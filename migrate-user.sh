@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
 set -e
 ###################################################################
-# Test for for the presents of the utilities needed by this script
+# Docker is used
 ###################################################################
-function test_env {
-  if (! command -v yq &> /dev/null) ||
-     (! command -v psql &> /dev/null) ||
-     (! command -v http &> /dev/null)
-  then
-      echo "The following commands are require to run this script:"
-      echo "  yq - https://mikefarah.gitbook.io/yq/"
-      echo "  psql - https://www.postgresql.org/download/"
-      echo "  http - https://httpie.io/download"
-      exit
-  fi
+
+yq() {
+  docker run --rm -i \
+    -v "${PWD}":/workdir \
+    -v ${HOME}/.okta:/okta_config \
+    mikefarah/yq "$@"
 }
-test_env
+
+psql() {
+  docker exec -i db psql "$@"
+}
+
+http() {
+  docker run --env OKTA_TOKEN akamai/httpie http --pretty all "$@"
+}
 
 # If you have an Okta Org already run `okta login` otherwise
 # run `okta register` to create a new one
-OKTA_CONFIG="/Users/bdemers/.okta/okta.yaml"
+OKTA_CONFIG="/okta_config/okta.yaml"
 OKTA_ORG=$(yq '.okta.client.orgUrl' ${OKTA_CONFIG})
 OKTA_TOKEN=$(yq '.okta.client.token' ${OKTA_CONFIG})
 
@@ -31,6 +33,10 @@ export PGPASSWORD=$(yq '.services.db.environment.POSTGRES_PASSWORD' ${DOCKER_COM
 
 
 function cleanup {
+
+  echo "--Demo purposes only--"
+  echo "Removing migrated users so script can be re-run, errors 'Not found' errors can be ignored in during cleanup"
+
   http POST "${OKTA_ORG}/api/v1/users/admin@example.com/lifecycle/deactivate" \
     "Authorization: SSWS ${OKTA_TOKEN}"
   http DELETE "${OKTA_ORG}/api/v1/users/admin@example.com" \
@@ -45,6 +51,9 @@ function cleanup {
     "Authorization: SSWS ${OKTA_TOKEN}"
   http DELETE "${OKTA_ORG}/api/v1/users/user2@example.com" \
     "Authorization: SSWS ${OKTA_TOKEN}"
+
+  echo "--Done cleanup--"
+  echo
 }
 cleanup
 
@@ -93,22 +102,6 @@ function import_user_with_pw {
 
 }
 
-# Query the 'users' table of the database for records that have a password hash that
-# can be imported into Okta
-#psql --host localhost \
-#     --dbname ${POSTGRES_DB} \
-#     --username ${POSTGRES_USER} \
-#     --tuples-only \
-#     --no-align \
-#     --field-separator ' ' \
-#     --quiet \
-#     -c "SELECT username, password, first_name, last_name, phone FROM users WHERE enabled=true AND password LIKE '{bcrypt}%';" \
-#  | while read username pw_hash first_name last_name phone ; do
-#     import_user_with_pw "${username}" "${pw_hash}" "${first_name}" "${last_name}" "${phone}"
-#  done
-
-
-
 ###################################################################
 # Imports a user with attributes will call password hook the first
 # time the user signs in.
@@ -141,8 +134,7 @@ function import_user_with_hook {
 }
 
 # Query the 'users' table of the database for records that do NOT have a supported hash type
-psql --host localhost \
-     --dbname ${POSTGRES_DB} \
+psql --dbname ${POSTGRES_DB} \
      --username ${POSTGRES_USER} \
      --tuples-only \
      --no-align \
