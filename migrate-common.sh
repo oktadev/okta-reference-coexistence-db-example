@@ -2,10 +2,22 @@
 # Common bits for example migration-* scripts in this repository
 ###################################################################
 
+export MSYS_NO_PATHCONV=1
+
 yq() {
+  PROJECT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+  OKTA_CONFIG_DIR="${HOME}/.okta"
+
+  if [ "$(uname)" == "MINGW*" ]; then
+    PROJECT_DIR=$(cygpath -m "${PROJECT_DIR}")
+    OKTA_CONFIG_DIR=$(cygpath -m "${OKTA_CONFIG_DIR}")
+    echo "PROJECT_DIR: '${PROJECT_DIR}'"
+    echo "OKTA_CONFIG_DIR: '${OKTA_CONFIG_DIR}'"
+  fi
+
   docker run --rm -i \
-    -v "${PWD}":/workdir \
-    -v ${HOME}/.okta:/okta_config \
+    -v "${PROJECT_DIR}":/workdir \
+    -v "${OKTA_CONFIG_DIR}":/okta_config \
     mikefarah/yq "$@"
 }
 
