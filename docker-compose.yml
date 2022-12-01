@@ -41,6 +41,7 @@ services:
       - db:db
     ports:
       - 8000:8000
+    restart: on-failure
     environment:
       DB_HOST: db
       POSTGRES_DB: example_db
