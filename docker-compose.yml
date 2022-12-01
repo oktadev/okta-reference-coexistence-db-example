@@ -45,6 +45,7 @@ services:
       DB_HOST: db
       POSTGRES_DB: example_db
       POSTGRES_USER: db_user
+      SERVER_PORT: 8000
       # DO NOT PUT SECRETS IN SOURCE CONTROL
       POSTGRES_PASSWORD: super_secret
-      SPRING_SECURITY_USER_PASSWORD: oktahookspw
+      SPRING_SECURITY_USER_PASSWORD: use-a-strong-password
