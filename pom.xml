@@ -11,6 +11,7 @@
     <modules>
         <module>web-app</module>
         <module>pw-import-hook</module>
+        <module>user-import-java</module>
     </modules>
 
 </project>
